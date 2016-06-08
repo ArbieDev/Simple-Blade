@@ -44,7 +44,7 @@ class Blade
         'yield_sections'
     );
 
-    protected $echoFormat = 'e(%s)';
+    protected $echo_format = 'e(%s)';
 
     /**
      * Stack of current sections being buffered
@@ -430,7 +430,6 @@ class Blade
      */
     protected function _compile_echos($value)
     {
-        $value = $this->compile_js_expressions($value);
         $value = $this->compile_raw_echos($value);
         $value = $this->compile_escaped_echos($value);
         $value = $this->compile_regular_echos($value);
@@ -438,52 +437,47 @@ class Blade
         return $value;
     }
 
-    protected function compile_js_expressions($value)
-    {
-        return preg_replace('/(?<!\{)@\{\{\s*(.+?)\s*\}\}(?!\})/', '{{ $1 }}', $value);
-    }
-
     protected function compile_raw_echos($value)
     {
         $pattern = sprintf('/(@)?%s\s*(.+?)\s*%s(\r?\n)?/s', '{!!', '!!}');
         $callback = function($matches)
-		{
-			$whitespace = empty($matches[3]) ? '' : $matches[3].$matches[3];
-			return $matches[1] ? substr($matches[0], 1) : '<?php echo '.$this->compileEchoDefaults($matches[2]).'; ?>'.$whitespace;
-		};
-		return preg_replace_callback($pattern, $callback, $value);
+	{
+	    $whitespace = empty($matches[3]) ? '' : $matches[3].$matches[3];
+	    return $matches[1] ? substr($matches[0], 1) : '<?php echo '.$this->compile_echo_defaults($matches[2]).'; ?>'.$whitespace;
+	};
+	return preg_replace_callback($pattern, $callback, $value);
     }
 
     protected function compile_escaped_echos($value)
-	{
-		$pattern = sprintf('/%s\s*(.+?)\s*%s(\r?\n)?/s', '{{{', '}}}');
+    {
+	$pattern = sprintf('/%s\s*(.+?)\s*%s(\r?\n)?/s', '{{{', '}}}');
 
-		$callback = function($matches)
-		{
-			$whitespace = empty($matches[2]) ? '' : $matches[2].$matches[2];
-			return '<?php echo e(s('.$this->compileEchoDefaults($matches[1]).')); ?>'.$whitespace;
-		};
-		return preg_replace_callback($pattern, $callback, $value);
-	}
+	$callback = function($matches)
+	{
+	    $whitespace = empty($matches[2]) ? '' : $matches[2].$matches[2];
+	    return '<?php echo e(s('.$this->compile_echo_defaults($matches[1]).')); ?>'.$whitespace;
+	};
+	return preg_replace_callback($pattern, $callback, $value);
+    }
 
     protected function compile_regular_echos($value)
+    {
+	$pattern = sprintf('/(@)?%s\s*(.+?)\s*%s(\r?\n)?/s', '{{', '}}');
+
+	$callback = function($matches)
 	{
-		$pattern = sprintf('/(@)?%s\s*(.+?)\s*%s(\r?\n)?/s', '{{', '}}');
+	    $whitespace = empty($matches[3]) ? '' : $matches[3].$matches[3];
+	    $wrapped = sprintf($this->echo_format, $this->compile_echo_defaults($matches[2]));
 
-		$callback = function($matches)
-		{
-			$whitespace = empty($matches[3]) ? '' : $matches[3].$matches[3];
-			$wrapped = sprintf($this->echoFormat, $this->compileEchoDefaults($matches[2]));
-
-			return $matches[1] ? substr($matches[0], 1) : '<?php echo '.$wrapped.'; ?>'.$whitespace;
-		};
-		return preg_replace_callback($pattern, $callback, $value);
+	    return $matches[1] ? substr($matches[0], 1) : '<?php echo '.$wrapped.'; ?>'.$whitespace;
+	    };
+	    return preg_replace_callback($pattern, $callback, $value);
 	}
 
-    protected function compileEchoDefaults($value)
-	{
-		return preg_replace('/^(?=\$)(.+?)(?:\s+or\s+)(.+?)$/s', 'isset($1) ? $1 : $2', $value);
-	}
+    protected function compile_echo_defaults($value)
+    {
+	return preg_replace('/^(?=\$)(.+?)(?:\s+or\s+)(.+?)$/s', 'isset($1) ? $1 : $2', $value);
+    }
 
 
     /**
