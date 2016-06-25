@@ -1,4 +1,4 @@
-<?php if ( ! defined('BASEPATH')) exit('No direct script access allowed');
+<?php if(!defined('BASEPATH')) exit('No direct script access allowed');
 
 /**
  * This class is a port of Laravel's blade templating system.
@@ -7,13 +7,13 @@
  * @author      Miguel Ayllón
  * @origin      https://github.com/laperla/codeigniter-Blade
  *
- * @editor      ArbieDev
+ * @editor      Arbie Chuang
  * @url         https://github.com/ArbieDev/Simple-Blade
- * 
+ *
  */
 
-class Blade
-{
+class Blade {
+
     /**
      * All of the compiler methods used by Blade.
      *
@@ -103,8 +103,7 @@ class Blade
 
     public function __get($name)
     {
-        if (key_exists($name, $this->_data))
-        {
+        if(key_exists($name, $this->_data)) {
             return $this->_data[$name];
         }
 
@@ -143,12 +142,9 @@ class Blade
      */
     public function append($name, $value)
     {
-        if (is_array($this->_data[$name]))
-        {
+        if(is_array($this->_data[$name])) {
             $this->_data[$name][] = $value;
-        }
-        else
-        {
+        } else {
             $this->_data[$name] .= $value;
         }
 
@@ -193,8 +189,7 @@ class Blade
      */
     public function render($template, $data = NULL, $return = FALSE)
     {
-        if (isset($data))
-        {
+        if(isset($data)) {
             $this->set_data($data);
         }
 
@@ -202,8 +197,7 @@ class Blade
         $compiled = $this->_compile($template);
         $content = $this->_run($compiled, $this->_data);
 
-        if ( ! $return)
-        {
+        if(!$return) {
             $this->output->append_output($content);
         }
 
@@ -232,20 +226,17 @@ class Blade
         $full_path = APPPATH . 'views/' . $view . $this->blade_ext;
 
         // Modular Separation / Modular Extensions has been detected
-        if (method_exists($this->router, 'fetch_module'))
-        {
+        if(method_exists($this->router, 'fetch_module')) {
             $module = $this->router->fetch_module();
             list($path, $_view) = Modules::find($view . $this->blade_ext, $module, 'views/');
 
-            if ($path)
-            {
+            if($path) {
                 $full_path = $path . $_view;
             }
         }
 
         // File not found
-        if ( ! is_file($full_path))
-        {
+        if(!is_file($full_path)) {
             show_error('[Blade] Unable to find view: ' . $view);
         }
 
@@ -264,24 +255,20 @@ class Blade
         $view_path = $this->_find_view($template);
         $cache_id = 'blade-' . md5($view_path);
 
-        if ($compiled = $this->cache->file->get($cache_id))
-        {
-            if (ENVIRONMENT == 'production')
-            {
+        if($compiled = $this->cache->file->get($cache_id)) {
+            if(ENVIRONMENT == 'production') {
                 return $compiled;
             }
 
             $meta = $this->cache->file->get_metadata($cache_id);
-            if ($meta['mtime'] > filemtime($view_path))
-            {
+            if($meta['mtime'] > filemtime($view_path)) {
                 return $compiled;
             }
         }
 
         $template = file_get_contents($view_path);
 
-        foreach ($this->_compilers as $compiler)
-        {
+        foreach($this->_compilers as $compiler) {
             $method = "_compile_{$compiler}";
             $template = $this->$method($template);
         }
@@ -301,8 +288,7 @@ class Blade
      */
     protected function _run($template, $data = NULL)
     {
-        if (is_array($data))
-        {
+        if(is_array($data)) {
             extract($data);
         }
 
@@ -329,6 +315,7 @@ class Blade
         $data = isset($data) ? array_merge($this->_data, $data) : $this->_data;
 
         $compiled = $this->_compile($template);
+
         return $this->_run($compiled, $data);
     }
 
@@ -380,12 +367,9 @@ class Blade
      */
     protected function _section_extend($section, $content)
     {
-        if (isset($this->_sections[$section]))
-        {
+        if(isset($this->_sections[$section])) {
             $this->_sections[$section] = str_replace('@parent', $content, $this->_sections[$section]);
-        }
-        else
-        {
+        } else {
             $this->_sections[$section] = $content;
         }
     }
@@ -417,9 +401,10 @@ class Blade
      * @return string
      */
     protected function _compile_comments($value)
-	{
+    {
 		$pattern = sprintf('/%s--((.|\s)*?)--%s/', '{{', '}}');
-		return preg_replace($pattern, '<?php /*$1*/ ?>', $value);
+
+		return preg_replace($pattern, '', $value);
 	}
 
     /**
@@ -431,8 +416,8 @@ class Blade
     protected function _compile_echos($value)
     {
         $value = $this->compile_raw_echos($value);
+        $value = $this->compile_filtered_echos($value);
         $value = $this->compile_escaped_echos($value);
-        $value = $this->compile_regular_echos($value);
 
         return $value;
     }
@@ -440,43 +425,43 @@ class Blade
     protected function compile_raw_echos($value)
     {
         $pattern = sprintf('/(@)?%s\s*(.+?)\s*%s(\r?\n)?/s', '{!!', '!!}');
-        $callback = function($matches)
-	{
-	    $whitespace = empty($matches[3]) ? '' : $matches[3].$matches[3];
-	    return $matches[1] ? substr($matches[0], 1) : '<?php echo '.$this->compile_echo_defaults($matches[2]).'; ?>'.$whitespace;
-	};
-	return preg_replace_callback($pattern, $callback, $value);
+
+        $callback = function($matches) {
+            $whitespace = empty($matches[3]) ? '' : $matches[3] . $matches[3];
+            return $matches[1] ? substr($matches[0], 1) : '<?php echo ' . $this->compile_echo_defaults($matches[2]) . '; ?>' . $whitespace;
+        };
+
+	    return preg_replace_callback($pattern, $callback, $value);
+    }
+
+    protected function compile_filtered_echos($value)
+    {
+	    $pattern = sprintf('/%s\s*(.+?)\s*%s(\r?\n)?/s', '{{{', '}}}');
+
+	    $callback = function($matches) {
+	        $whitespace = empty($matches[2]) ? '' : $matches[2].$matches[2];
+	        return '<?php echo e(s(' . $this->compile_echo_defaults($matches[1]) . ')); ?>' . $whitespace;
+	    };
+
+	    return preg_replace_callback($pattern, $callback, $value);
     }
 
     protected function compile_escaped_echos($value)
     {
-	$pattern = sprintf('/%s\s*(.+?)\s*%s(\r?\n)?/s', '{{{', '}}}');
+	    $pattern = sprintf('/(@)?%s\s*(.+?)\s*%s(\r?\n)?/s', '{{', '}}');
 
-	$callback = function($matches)
-	{
-	    $whitespace = empty($matches[2]) ? '' : $matches[2].$matches[2];
-	    return '<?php echo e(s('.$this->compile_echo_defaults($matches[1]).')); ?>'.$whitespace;
-	};
-	return preg_replace_callback($pattern, $callback, $value);
-    }
+        $callback = function($matches) {
+            $whitespace = empty($matches[3]) ? '' : $matches[3].$matches[3];
+            $wrapped = sprintf($this->echo_format, $this->compile_echo_defaults($matches[2]));
+            return $matches[1] ? substr($matches[0], 1) : '<?php echo ' . $wrapped . '; ?>' . $whitespace;
+        };
 
-    protected function compile_regular_echos($value)
-    {
-	$pattern = sprintf('/(@)?%s\s*(.+?)\s*%s(\r?\n)?/s', '{{', '}}');
-
-	$callback = function($matches)
-	{
-	    $whitespace = empty($matches[3]) ? '' : $matches[3].$matches[3];
-	    $wrapped = sprintf($this->echo_format, $this->compile_echo_defaults($matches[2]));
-
-	    return $matches[1] ? substr($matches[0], 1) : '<?php echo '.$wrapped.'; ?>'.$whitespace;
-	    };
-	    return preg_replace_callback($pattern, $callback, $value);
+        return preg_replace_callback($pattern, $callback, $value);
 	}
 
     protected function compile_echo_defaults($value)
     {
-	return preg_replace('/^(?=\$)(.+?)(?:\s+or\s+)(.+?)$/s', 'isset($1) ? $1 : $2', $value);
+	    return preg_replace('/^(?=\$)(.+?)(?:\s+or\s+)(.+?)$/s', 'isset($1) ? $1 : $2', $value);
     }
 
 
@@ -490,14 +475,13 @@ class Blade
     {
         preg_match_all('/(\s*)@forelse(\s*\(.*\))(\s*)/', $value, $matches);
 
-        foreach ($matches[0] as $forelse)
-        {
+        foreach($matches[0] as $forelse) {
             preg_match('/\$[^\s]*/', $forelse, $variable);
 
             // Once we have extracted the variable being looped against, we can add
             // an if statement to the start of the loop that checks if the count
             // of the variable being looped against is greater than zero.
-            $if = "<?php if (count({$variable[0]}) > 0): ?>";
+            $if = "<?php if(count({$variable[0]}) > 0): ?>";
 
             $search = '/(\s*)@forelse(\s*\(.*\))/';
 
@@ -641,7 +625,7 @@ class Blade
     {
         $pattern = '/(\s*)@unless(\s*\(.*\))/';
 
-        return preg_replace($pattern, '$1<?php if( ! ($2)): ?>', $value);
+        return preg_replace($pattern, '$1<?php if(!($2)): ?>', $value);
     }
 
 
@@ -665,8 +649,7 @@ class Blade
      */
     protected function _compile_extensions($value)
     {
-        foreach ($this->_extensions as $compiler)
-        {
+        foreach($this->_extensions as $compiler) {
             $value = call_user_func($compiler, $value);
         }
 
@@ -699,18 +682,16 @@ class Blade
         $pattern = $this->matcher('extends');
 
         // Find "@extends" expressions
-        if ( ! preg_match_all($pattern, $value, $matches, PREG_SET_ORDER))
-        {
+        if(!preg_match_all($pattern, $value, $matches, PREG_SET_ORDER)) {
             return $value;
         }
 
         // Delete "@extends" expressions
-        if (preg_match_all($pattern, $value, $matches, PREG_SET_ORDER)) {
+        if(preg_match_all($pattern, $value, $matches, PREG_SET_ORDER)) {
             $value = preg_replace($pattern, '', $value);
         }
 
-        foreach ($matches as $set)
-        {
+        foreach($matches as $set) {
             $value .= "\n" . $set[1] . '<?php echo $this->_include' . $set[2] . "; ?>\n";
         }
 
