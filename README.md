@@ -1,10 +1,10 @@
 # Simple-Blade
-A light stand-alone Blade library
+A light stand-alone Blade library for PHP
 
 First, composer is not needed for Simple-Blade. 
-To use Simple-Blade, just simply load the files. 
-For example, if you're using CI framework, 
-you'll only need to add 2 lines of code like the following to your function __construct().
+To use Simple-Blade, just load the library and helper files.
+For example, if you're using CodeIgniter framework, 
+you'll only need to add 2 lines of code like the following to your project.
 
 `$this->load->library('blade');`
 
